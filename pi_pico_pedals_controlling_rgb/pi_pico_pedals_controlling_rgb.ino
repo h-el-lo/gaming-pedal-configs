@@ -1,100 +1,267 @@
 #include <Adafruit_NeoPixel.h>
-
-#define RGB_PIN 23   // Change to your board's RGB pin
-#define NUMPIXELS 1  // Only 1 LED onboard
-
-Adafruit_NeoPixel pixels(NUMPIXELS, RGB_PIN, NEO_RGB + NEO_KHZ800);
-
-int r, g, b;
-
 #include <Joystick.h>
 
+// RGB LED setup
+#define RGB_PIN 23   // Change to your board's RGB pin
+#define NUMPIXELS 1  // Only 1 LED onboard
+Adafruit_NeoPixel pixels(NUMPIXELS, RGB_PIN, NEO_RGB + NEO_KHZ800);
+
+// Rotary encoder pins for steering
+const int ENCODER_A_PIN = 21;  // GPIO18 - Connect to encoder channel A
+const int ENCODER_B_PIN = 22;  // GPIO20 - Connect to encoder channel B
+
+// Additional button pins
+const int STEERING_RESET = 19; // GPIO19 - Reset steering button
+const int BUTTON_9_PIN = 16;   // GPIO16 - Button 9
+const int BUTTON_10_PIN = 17;  // GPIO17 - Button 10
+
+// Steering parameters
+const int STEERING_CENTER = 512;     // Center position for X axis
+const int STEERING_MAX_RANGE = 512;  // Maximum deviation from center
+int ENCODER_SENSITIVITY = 5;         // Steps per steering increment (changeable)
+int currentSteeringPos = STEERING_CENTER;
+
+// Potentiometer pins for throttle/brake
 int pots[3] = { A1, A0, A2 };
 
-int rxUpper = 820;  // 810;
-int rxLower = 180;  // 200;
+// Calibration values for potentiometers
+int rxUpper = 750;  // Throttle upper
+int rxLower = 135;  // Throttle lower
+int ryUpper = 600;  // Brake upper
+int ryLower = 230;  // Brake lower
 
-int ryUpper = 690;
-int ryLower = 270;
-
-// int rzUpper = 1023;
-// int rzLower = 0;
+// Variables for encoder steering
+volatile int encoderPos = 0;
+volatile int lastEncoded = 0;
 
 
-// 16 bit integer for holding input values
+// Reset button debouncing
+bool lastResetState = HIGH;
+unsigned long lastResetTime = 0;
+const unsigned long resetDebounceDelay = 50;
+
+// Button debouncing for new buttons
+bool lastButton9State = HIGH;
+bool lastButton10State = HIGH;
+unsigned long lastButton9Time = 0;
+unsigned long lastButton10Time = 0;
+const unsigned long buttonDebounceDelay = 50;
+
+// RGB color values
+int r, g, b;
 int val1, val2, val3;
 
 void setup() {
+  // Initialize joystick
   Joystick.begin();
   Joystick.useManualSend(true);
-
+  
+  // Initialize RGB LED
   pixels.begin();
-
+  
+  // Initialize serial communication
   Serial.begin(9600);
-  for (int i = 0; i < 3; i++) {
-    pinMode(pots[1], INPUT);
+  
+  // Configure potentiometer pins
+  for (int i = 0; i < 2; i++) {  // Fixed: was pots[1], now i
+    pinMode(pots[i], INPUT);
   }
+  
+  // Configure encoder pins as inputs with pull-up resistors
+  pinMode(ENCODER_A_PIN, INPUT_PULLUP);
+  pinMode(ENCODER_B_PIN, INPUT_PULLUP);
+  pinMode(STEERING_RESET, INPUT_PULLUP);  // Reset button with pull-up
+  
+  // Configure additional button pins with pull-up resistors
+  pinMode(BUTTON_9_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_10_PIN, INPUT_PULLUP);
+  
+  // Attach interrupts for encoder channels
+  attachInterrupt(digitalPinToInterrupt(ENCODER_A_PIN), updateEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_B_PIN), updateEncoder, CHANGE);
+  
+  // Set initial steering position
+  Joystick.X(currentSteeringPos);
+  
+  Serial.println("Joystick with Rotary Encoder Steering Ready");
+  Serial.println("Encoder controls X-axis (steering)");
+  Serial.println("Pin 19 resets steering to center");
+  Serial.println("Pin 16 is Button 9, Pin 17 is Button 10");
+  Serial.println("Potentiometers control Z-rotation (throttle) and Z-axis (brake)");
 }
 
 void loop() {
-
+  // Check for reset button press
+  checkResetButton();
+  
+  // Check for additional button presses
+  checkButton9();
+  checkButton10();
+  
+  // Update steering based on encoder position
+  updateSteering();
+  
+  // Read brake potentiometer (val1)
   val1 = analogRead(pots[0]);
-
-  Serial.print("RX: ");
+  Serial.print("Brake: ");
   Serial.print(val1);
-  Serial.print(", ");
-  Serial.print("RX Mod: ");
+  Serial.print(", Constrained: ");
   Serial.print(constrain(val1, rxLower, rxUpper));
-
-  // Map analog 0-1023 value from pin to max HID range 0 - 1023
-  val1 = map(constrain(val1, rxLower, rxUpper), rxLower, rxUpper, 1023, 0);  // Throttle
-  g = map(val1, 0, 1023, 0, 255);
-
-
+  
+  // Map and invert brake value
+  val1 = map(constrain(val1, rxLower, rxUpper), rxLower, rxUpper, 1023, 0);
+  g = map(val1, 0, 1023, 0, 255);  // Green component for LED
+  
+  // Read throttle potentiometer (val2)
   val2 = analogRead(pots[1]);
-
-  Serial.print("\tRY: ");
+  Serial.print("\tThrottle: ");
   Serial.print(val2);
-  Serial.print(", ");
-  Serial.print("RY Mod: ");
+  Serial.print(", Constrained: ");
   Serial.print(constrain(val2, ryLower, ryUpper));
-
-  // Map analog 0-1023 value from pin to max HID range 0 - 1023
-  val2 = map(constrain(val2, ryLower, ryUpper), ryLower, ryUpper, 1023, 0);  // Brake
-  r = map(val2, 0, 1023, 0, 255);
-
-
-  // val3 = analogRead(pots[2]);
-
-  // Serial.print("\tRZ: ");
-  // Serial.print(val3);
-  // Serial.print(", ");
-  // Serial.print("RZ Mod: ");
-  // Serial.print(constrain(val3, rzLower, rzUpper));
-
-  // // Map analog 0-1023 value from pin to max HID range 0 - 1023
-  // val3 = map(constrain(val3, rzLower, rzUpper), rzLower, rzUpper, 1023, 0);
-  // b = map(val3, 0, 1023, 0, 255)
-
-
-
-  Serial.println();
-
-
-  // Send value to HID object
-  Joystick.Zrotate(val1);
-  Joystick.Z(val2);
-  // gamepad.SetRz(val3);
+  
+  // Map and invert throttle value
+  val2 = map(constrain(val2, ryLower, ryUpper), ryLower, ryUpper, 1023, 0);
+  r = map(val2, 0, 1023, 0, 255);  // Red component for LED
+  
+  // Set blue component based on steering position (for visual feedback)
+  b = map(abs(currentSteeringPos - STEERING_CENTER), 0, STEERING_MAX_RANGE, 0, 255);
+  
+  Serial.print("\tSteering: ");
+  Serial.print(currentSteeringPos);
+  Serial.print(" (Encoder: ");
+  Serial.print(encoderPos);
+  Serial.println(")");
+  
+  // Send joystick values
+  Joystick.X(currentSteeringPos);        // Steering wheel (rotary encoder)
+  Joystick.Zrotate(val1);               // Throttle
+  Joystick.Z(val2);                     // Brake
+  
+  // Update RGB LED
   pixels.setPixelColor(0, pixels.Color(r, g, b));
-
-
-  //  gamepad.SetZ(val);
-  //  gamepad.SetS0(val);
-  //  gamepad.SetS1(val);
-
-  // Set hat direction, 4 hats available. direction is clockwise 0=N 1=NE 2=E 3=SE 4=S 5=SW 6=W 7=NW 8=CENTER
-  // gamepad.SetHat(0, 8);
-
+  
+  // Send all updates
   Joystick.send_now();
   pixels.show();
+  
+  delay(10);  // Small delay for stability
+}
+
+// Check reset button with debouncing
+void checkResetButton() {
+  bool currentResetState = digitalRead(STEERING_RESET);
+  unsigned long currentTime = millis();
+  
+  // Check if button state changed and enough time has passed (debouncing)
+  if (currentResetState != lastResetState && 
+      (currentTime - lastResetTime) > resetDebounceDelay) {
+    
+    // Button pressed (LOW because of pull-up resistor)
+    if (currentResetState == LOW) {
+      Serial.println("Reset button pressed - centering steering");
+      resetSteering();
+    }
+    
+    lastResetState = currentResetState;
+    lastResetTime = currentTime;
+  }
+}
+
+// Check button 9 with debouncing
+void checkButton9() {
+  bool currentButton9State = digitalRead(BUTTON_9_PIN);
+  unsigned long currentTime = millis();
+  
+  // Check if button state changed and enough time has passed (debouncing)
+  if (currentButton9State != lastButton9State && 
+      (currentTime - lastButton9Time) > buttonDebounceDelay) {
+    
+    // Button pressed (LOW because of pull-up resistor)
+    if (currentButton9State == LOW) {
+      Serial.println("Button 9 pressed");
+      Joystick.button(9, true);
+    } else {
+      Serial.println("Button 9 released");
+      Joystick.button(9, false);
+    }
+    
+    lastButton9State = currentButton9State;
+    lastButton9Time = currentTime;
+  }
+}
+
+// Check button 10 with debouncing
+void checkButton10() {
+  bool currentButton10State = digitalRead(BUTTON_10_PIN);
+  unsigned long currentTime = millis();
+  
+  // Check if button state changed and enough time has passed (debouncing)
+  if (currentButton10State != lastButton10State && 
+      (currentTime - lastButton10Time) > buttonDebounceDelay) {
+    
+    // Button pressed (LOW because of pull-up resistor)
+    if (currentButton10State == LOW) {
+      Serial.println("Button 10 pressed");
+      Joystick.button(10, true);
+    } else {
+      Serial.println("Button 10 released");
+      Joystick.button(10, false);
+    }
+    
+    lastButton10State = currentButton10State;
+    lastButton10Time = currentTime;
+  }
+}
+
+// Update steering position based on encoder
+void updateSteering() {
+  static int lastEncoderPos = 0;
+  
+  if (encoderPos != lastEncoderPos) {
+    // Calculate encoder change
+    int encoderChange = encoderPos - lastEncoderPos;
+    
+    // Apply sensitivity and update steering position
+    int steeringChange = encoderChange * ENCODER_SENSITIVITY;
+    currentSteeringPos += steeringChange;
+    
+    // Constrain steering to valid range
+    currentSteeringPos = constrain(currentSteeringPos, 
+                                  STEERING_CENTER - STEERING_MAX_RANGE,
+                                  STEERING_CENTER + STEERING_MAX_RANGE);
+    
+    lastEncoderPos = encoderPos;
+  }
+}
+
+// Interrupt service routine for encoder
+void updateEncoder() {
+  int MSB = digitalRead(ENCODER_A_PIN); // Most significant bit
+  int LSB = digitalRead(ENCODER_B_PIN); // Least significant bit
+  
+  int encoded = (MSB << 1) | LSB; // Convert to single number
+  int sum = (lastEncoded << 2) | encoded; // Add it to previous encoded value
+  
+  // Determine direction based on state changes
+  if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) {
+    encoderPos++;
+  }
+  if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) {
+    encoderPos--;
+  }
+  
+  lastEncoded = encoded; // Store this value for next time
+} 
+
+// Function to reset steering to center
+void resetSteering() {
+  encoderPos = 0;
+  currentSteeringPos = STEERING_CENTER;
+  Joystick.X(currentSteeringPos);
+}
+
+// Function to set steering sensitivity
+void setSteeringSensitivity(int sensitivity) {
+  // Sensitivity should be 1-10, where 1 is least sensitive
+  ENCODER_SENSITIVITY = constrain(sensitivity, 1, 10);
 }
