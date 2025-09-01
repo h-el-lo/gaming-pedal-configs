@@ -25,10 +25,10 @@ int currentSteeringPos = STEERING_CENTER;
 int pots[3] = { A1, A2, A3 };
 
 // Calibration values for potentiometers
-int throttleUpper = 720;  // Throttle upper
+int throttleUpper = 730;  // Throttle upper
 int throttleLower = 320;  // Throttle lower
 int brakeUpper = 810;     // Brake upper
-int brakeLower = 140;     // Brake lower
+int brakeLower = 210;     // Brake lower
 
 // Variables for encoder steering
 volatile int encoderPos = 0;
@@ -119,7 +119,7 @@ void loop() {
   // Serial.print("\tBrake: ");
   // Serial.print(val2);
   // Serial.print(", Constrained: ");
-  // Serial.print(constrain(val2, brakeLower, brakeUpper));
+  // Serial.println(constrain(val2, brakeLower, brakeUpper));
 
   // Map and invert brake value
   val2 = map(constrain(val2, brakeLower, brakeUpper), brakeLower, brakeUpper, 1023, 0);
