@@ -25,10 +25,10 @@ int currentSteeringPos = STEERING_CENTER;
 int pots[3] = { A1, A2, A3 };
 
 // Calibration values for potentiometers
-int throttleUpper = 730;  // Throttle upper
+int throttleUpper = 680;  // Throttle upper
 int throttleLower = 320;  // Throttle lower
-int brakeUpper = 810;     // Brake upper
-int brakeLower = 210;     // Brake lower
+int brakeUpper = 750;     // Brake upper
+int brakeLower = 160;     // Brake lower
 
 // Variables for encoder steering
 volatile int encoderPos = 0;
