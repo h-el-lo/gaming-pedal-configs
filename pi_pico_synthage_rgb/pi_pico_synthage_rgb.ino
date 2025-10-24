@@ -157,6 +157,7 @@ void linear_stepper_forward_backward(int r, int g, int b, int steps, int timeon,
 
 
   } else if (stage == 2) {
+
     if (micros() - RGB_timer >= timeoff * 1000) {
       stage = 3;
     }
@@ -181,9 +182,11 @@ void linear_stepper_forward_backward(int r, int g, int b, int steps, int timeon,
     }
 
   } else if (stage == 4) {
+
     if (micros() - RGB_timer >= timeoff * 1000) {
       stage = 1;
       sel++;
     }
+
   }
 }
