@@ -1,14 +1,3 @@
-/*
-  Supports:
-  128 Buttons
-  8 Analog axes
-  4 Hat switches
-  
-  created 28 June 2021
-  by Jake Wilkinson (RealRobots)
-
-  https://www.gitlab.com/realrobots/PicoGamepad
-*/
 #include <Adafruit_NeoPixel.h>
 
 #define RGB_PIN 23   // Change to your board's RGB pin
