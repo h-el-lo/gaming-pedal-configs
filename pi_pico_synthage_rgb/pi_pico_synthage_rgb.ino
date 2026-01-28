@@ -1,5 +1,6 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 #include <Adafruit_NeoPixel.h>
 
 #define RGB_PIN 23   // Change to your board's RGB pin
@@ -37,6 +38,8 @@ int stage = 1;          // Begin animation at stage 1
 unsigned long sel = 1;  // Color index selection from color list // Begins animation at color "sel"
 // ==========================================================
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -95,6 +98,7 @@ void updatePedals() {
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   } else if (stage == 2) {
 
     if (micros() - RGB_timer >= timeoff * 1000) {
@@ -104,10 +108,13 @@ void updatePedals() {
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
   } else if (stage == 4) {
@@ -122,6 +129,8 @@ void updatePedals() {
 =======
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 
@@ -133,6 +142,9 @@ void updatePedals() {
 
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
