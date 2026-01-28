@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 #include <Adafruit_NeoPixel.h>
 
 #define RGB_PIN 23   // Change to your board's RGB pin
@@ -35,152 +36,73 @@ int stage = 1;          // Begin animation at stage 1
 unsigned long sel = 1;  // Color index selection from color list // Begins animation at color "sel"
 // ==========================================================
 
+=======
+>>>>>>> Stashed changes
 #include <Joystick.h>
+#include "S_RGB.h"
+#include "Pedal.h"
 
-int pots[3] = { A1, A0, A2 };
+// ======================================= PEDALS ==========================================
+//{"name", pin, axis, invert, min, max, deadzone(%), responseCurve}
+Pedal Throttle("THROTTLE", A1, 1, 0, 320, 680, 0, 1);
+Pedal Brake("BRAKE", A2, 2, 0, 160, 750, 0, 1);
+Pedal Clutch("CLUTCH", A3, 1, 0, 250, 700, 0, 1);
 
-int rxUpper = 840;  // 810;
-int rxLower = 170;  // 200;
+Pedal pedals[3] = { Throttle, Brake, Clutch };
+uint8_t potAxisAssignment[5] = { 1, 2, 3, 4, 5 };  // 1=Y(throttle), 2=Z(brake), 3=RZ(clutch) 4-RX(), 5=RY()
+// ==========================================================================================
 
-int ryUpper = 690;
-int ryLower = 270;
-
-// int rzUpper = 1023;
-// int rzLower = 0;
-
-
-// 16 bit integer for holding input values
-int val1, val2, val3;
+S_RGB myRGB;
+int r, g, b;
 
 void setup() {
   Joystick.begin();
   Joystick.useManualSend(true);
 
-  pixels.begin();
-
-  Serial.begin(9600);
-  for (int i = 0; i < 3; i++) {
-    pinMode(pots[1], INPUT);
-  }
 }
 
 void loop() {
-
-  int* color = colors[(sel % 12) - 1];
-  rgb(color[0], color[1], color[2]);
-  linear_stepper_forward_backward(r, g, b, steps, timeon, timeoff);
-
-  val1 = analogRead(pots[0]);
-
-  Serial.print("RX: ");
-  Serial.print(val1);
-  Serial.print(", ");
-  Serial.print("RX Mod: ");
-  Serial.print(constrain(val1, rxLower, rxUpper));
-
-  // Map analog 0-1023 value from pin to max HID range -32767 - 32767
-  val1 = map(constrain(val1, rxLower, rxUpper), rxLower, rxUpper, 0, 1023);
-
-
-  val2 = analogRead(pots[1]);
-
-  Serial.print("\tRY: ");
-  Serial.print(val2);
-  Serial.print(", ");
-  Serial.print("RY Mod: ");
-  Serial.print(constrain(val2, ryLower, ryUpper));
-
-  // Map analog 0-1023 value from pin to max HID range -32767 - 32767
-  val2 = map(constrain(val2, ryLower, ryUpper), ryLower, ryUpper, 0, 1023);
-
-
-  // val3 = analogRead(pots[2]);
-
-  // Serial.print("\tRZ: ");
-  // Serial.print(val3);
-  // Serial.print(", ");
-  // Serial.print("RZ Mod: ");
-  // Serial.print(constrain(val3, rzLower, rzUpper));
-
-  // // Map analog 0-1023 value from pin to max HID range -32767 - 32767
-  // val3 = map(constrain(val3, rzLower, rzUpper), rzLower, rzUpper, 32767, -32767);
-
-
-
-  Serial.println();
-
-
-  // Send value to HID object
-  Joystick.Zrotate(val1);
-  Joystick.Z(val2);
-  // gamepad.SetRz(val3);
-
-
-  //  gamepad.SetZ(val);
-  //  gamepad.SetS0(val);
-  //  gamepad.SetS1(val);
-
-  // Set hat direction, 4 hats available. direction is clockwise 0=N 1=NE 2=E 3=SE 4=S 5=SW 6=W 7=NW 8=CENTER
-  // gamepad.SetHat(0, 8);
+  myRGB.testing();
+  // Update pedals with the Pedal.update() method, map pedal readings to RGB
+  updatePedals();
 
   Joystick.send_now();
 }
 
 
-void rgb(int R, int G, int B) {
-  r = R;
-  g = G;
-  b = B;
+void updatePedals() {
+  // Read throttle potentiometer (val1)
+  Throttle.update();
+  // g = map(Throttle.getValue(), 0, 1023, 0, 255);  // Green component for LED
+  // DEBUGGER
+  // Serial.println("Green component of RGB LED is " + g);
+
+  // Read brake potentiometer (val2)
+  Brake.update();
+  // r = map(Brake.getValue(), 0, 1023, 0, 255);  // Red component for LED
+  // DEBUGGER
+  // Serial.println("Red component of RGB LED is " + r);
+
+  // // Read clutch potentiometer (val3)
+  // Clutch.update();
+  // val3 = map(constrain(val3, clutchLower, clutchUpper), clutchLower, clutchUpper, 1023, 0);
 }
 
-void linear_stepper_forward_backward(int r, int g, int b, int steps, int timeon, int timeoff) {
-  // This pattern is in four stages, increment, hold, decrement, hold.
-
-  if (stage == 1) {
-
-    if (RGB_count <= steps) {
-      if (micros() - RGB_timer >= threshold) {
-        pixels.setPixelColor(0, pixels.Color(((r * RGB_count) / steps), ((g * RGB_count) / steps), ((b * RGB_count) / steps)));
-        pixels.show();
-        RGB_timer = micros();
-        RGB_count += 1;
-      }
-    }
-
-    if (RGB_count == steps) {
-      RGB_count = 0;
-      pixels.setPixelColor(0, pixels.Color(r, g, b));
-      pixels.show();
-      RGB_timer = micros();  // Reset the RGB_timer variable
-      stage = 2;
-    }
 
 
+<<<<<<< Updated upstream
   } else if (stage == 2) {
 
     if (micros() - RGB_timer >= timeoff * 1000) {
       stage = 3;
     }
+=======
+>>>>>>> Stashed changes
 
-  } else if (stage == 3) {
 
-    if (RGB_count <= steps) {
-      if (micros() - RGB_timer >= threshold) {
-        pixels.setPixelColor(0, pixels.Color(((r * (steps - RGB_count)) / steps), ((g * (steps - RGB_count)) / steps), ((b * (steps - RGB_count)) / steps)));
-        pixels.show();
-        RGB_timer = micros();
-        RGB_count += 1;
-      }
-    }
 
-    if (RGB_count == steps) {
-      RGB_count = 0;
-      pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-      pixels.show();
-      RGB_timer = micros();  // Reset the RGB_timer variable
-      stage = 4;
-    }
 
+<<<<<<< Updated upstream
   } else if (stage == 4) {
 
     if (micros() - RGB_timer >= timeoff * 1000) {
@@ -190,3 +112,15 @@ void linear_stepper_forward_backward(int r, int g, int b, int steps, int timeon,
 
   }
 }
+=======
+
+
+
+
+
+
+
+
+
+
+>>>>>>> Stashed changes
